@@ -18,3 +18,25 @@ class IsAdminOrReadOnly(permissions.BasePermission):
                 or request.user.is_superuser
             )
         )
+
+
+class IsAuthorModeratorAdminOrReadOnly(permissions.BasePermission):
+    """
+    Разрешение:
+    - GET — доступно всем (включая анонимов)
+    - POST, PATCH, DELETE — только автору, модератору или администратору
+    """
+
+    def has_permission(self, request, view):
+        return (
+            request.method in permissions.SAFE_METHODS
+            or request.user.is_authenticated
+        )
+
+    def has_object_permission(self, request, view, obj):
+        return (
+            request.method in permissions.SAFE_METHODS
+            or obj.author == request.user
+            or request.user.is_staff #временное решение пока не будет пользователей(если забуду исправить напомните мне)
+            or request.user.is_superuser
+        )
