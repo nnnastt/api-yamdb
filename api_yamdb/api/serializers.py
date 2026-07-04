@@ -1,8 +1,37 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.relations import SlugRelatedField
 
-from reviews.models import Category, Genre, Title
+from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
+
+
+class RegistrationSerializer(serializers.Serializer):
+
+    email = serializers.EmailField(max_length=254, required=True)
+    username = serializers.CharField(max_length=150, required=True)
+
+    def validate_username(self, username: str) -> str:
+        if username.lower() == 'me':
+            raise ValidationError(
+                {'detail': 'Неверное имя пользователя.'},
+                status.HTTP_400_BAD_REQUEST
+            )
+        return username
+
+
+class TokenSerializer(serializers.Serializer):
+
+    confirmation_code = serializers.CharField(required=True)
+    username = serializers.CharField(max_length=150, required=True)
+
+    def validate_username(self, username: str) -> str:
+        if not CustomUser.objects.filter(username=username).exists():
+            raise ValidationError(
+                {'detail': 'Пользователь не найден.'},
+                status.HTTP_404_NOT_FOUND
+            )
+        return username
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -80,3 +109,38 @@ class TitleCreateSerializer(serializers.ModelSerializer):
         """При GET-запросе используем TitleReadSerializer для полной инфы."""
 
         return TitleReadSerializer(instance).data
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Review."""
+
+    author = SlugRelatedField(read_only=True, slug_field='username')
+
+    class Meta:
+        model = Review
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
+
+    def validate(self, data):
+        request = self.context['request']
+        view = self.context['view']
+        title_id = view.kwargs.get('title_id')
+
+        if request.method == 'POST':
+            if Review.objects.filter(
+                title_id=title_id,
+                author=request.user
+            ).exists():
+                raise serializers.ValidationError(
+                    'Можно оставить только один отзыв'
+                )
+        return data
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Comment."""
+
+    author = SlugRelatedField(read_only=True, slug_field='username')
+
+    class Meta:
+        model = Comment
+        fields = ('id', 'text', 'author', 'pub_date')
