@@ -24,6 +24,7 @@ class CustomUser(AbstractUser):
         default=UserRole.USER,
         verbose_name='Роль'
     )
+    bio = models.TextField(blank=True, null=True)
 
     @property
     def is_admin(self) -> bool:
