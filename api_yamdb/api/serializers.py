@@ -1,4 +1,5 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.relations import SlugRelatedField
@@ -7,9 +8,12 @@ from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
 
 
 class RegistrationSerializer(serializers.Serializer):
+    """Сериализатор для регистрации."""
 
     email = serializers.EmailField(max_length=254, required=True)
-    username = serializers.CharField(max_length=150, required=True)
+    username = serializers.RegexField(regex=r'^[\w.@+-]+\Z',
+                                      max_length=150,
+                                      required=True)
 
     def validate_username(self, username: str) -> str:
         if username.lower() == 'me':
@@ -19,18 +23,30 @@ class RegistrationSerializer(serializers.Serializer):
             )
         return username
 
+    def validate(self, data):
+        user = CustomUser.objects.filter(email=data['email']).first()
+        if user and user.username != data['username']:
+            raise ValidationError(
+                {'detail': 'Неверное имя пользователя.'},
+                status.HTTP_400_BAD_REQUEST
+            )
+        user = CustomUser.objects.filter(username=data['username']).first()
+        if user and user.email != data['email']:
+            raise ValidationError(
+                {'detail': 'Неверная почта.'},
+                status.HTTP_400_BAD_REQUEST
+            )
+        return data
+
 
 class TokenSerializer(serializers.Serializer):
+    """Сериализатор для получения токена."""
 
     confirmation_code = serializers.CharField(required=True)
     username = serializers.CharField(max_length=150, required=True)
 
     def validate_username(self, username: str) -> str:
-        if not CustomUser.objects.filter(username=username).exists():
-            raise ValidationError(
-                {'detail': 'Пользователь не найден.'},
-                status.HTTP_404_NOT_FOUND
-            )
+        get_object_or_404(CustomUser, username=username)
         return username
 
 
