@@ -11,3 +11,4 @@ router_v1.register(r'titles', TitleViewSet, basename='titles')
 urlpatterns = [
     re_path(r'^v1/', include(router_v1.urls)),
 ]
+# удалить этот файл
