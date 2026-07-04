@@ -39,6 +39,48 @@ class RegistrationSerializer(serializers.Serializer):
         return data
 
 
+class UserSerializer(serializers.ModelSerializer):
+    """Сериализатор для админа."""
+
+    class Meta:
+        model = CustomUser
+        fields = (
+            'username', 'email', 'first_name', 'last_name',
+            'bio', 'role'
+        )
+        extra_kwargs = {
+            'email': {'required': True},
+            'username': {'required': True},
+        }
+
+    def validate_username(self, value):
+        if value.lower() == 'me':
+            raise serializers.ValidationError('Неверное имя пользователя.')
+        return value
+
+    def validate_email(self, value):
+        if CustomUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError('Пользователь с таким email уже существует.')
+        return value
+
+
+class UserMeSerializer(serializers.ModelSerializer):
+    """Сериализатор для пользователя."""
+
+    class Meta:
+        model = CustomUser
+        fields = (
+            'username', 'email', 'first_name', 'last_name',
+            'bio', 'role'
+        )
+        read_only_fields = ['role']
+
+    def validate_username(self, value):
+        if value.lower() == 'me':
+            raise serializers.ValidationError('Неверное имя пользователя.')
+        return value
+
+
 class TokenSerializer(serializers.Serializer):
     """Сериализатор для получения токена."""
 
@@ -76,12 +118,13 @@ class TitleReadSerializer(serializers.ModelSerializer):
 
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(read_only=True, many=True)
+    rating = serializers.FloatField(read_only=True)
 
     class Meta:
         model = Title
         fields = (
             'id', 'name', 'year',
-            'description', 'genre', 'category',
+            'description', 'genre', 'category', 'rating'
         )
 
 

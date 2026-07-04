@@ -1,7 +1,8 @@
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, status, viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework import filters, mixins, status, viewsets, permissions
+from rest_framework.decorators import api_view, action, permission_classes
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
@@ -9,12 +10,64 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.filters import TitleFilter
-from api.permissions import IsAdminOrReadOnly, IsAuthorModeratorAdminOrReadOnly
+from api.permissions import IsAdminOrReadOnly, IsAuthorModeratorAdminOrReadOnly, IsAdminUser
 from api.serializers import (CategorySerializer, CommentSerializer,
                              GenreSerializer, RegistrationSerializer,
                              ReviewSerializer, TitleCreateSerializer,
-                             TitleReadSerializer, TokenSerializer)
+                             TitleReadSerializer, TokenSerializer,
+                             UserSerializer, UserMeSerializer)
+
 from reviews.models import Category, CustomUser, Genre, Review, Title
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = CustomUser.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAdminUser]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username']
+    lookup_field = 'username'
+    pagination_class = PageNumberPagination
+    http_method_names = ['get', 'post', 'patch', 'delete']
+
+    def get_queryset(self):
+        if not self.request.user.is_authenticated or not self.request.user.is_admin:
+            return CustomUser.objects.none()
+        return super().get_queryset()
+
+    @action(detail=False, methods=['get', 'patch'],
+            permission_classes=[permissions.IsAuthenticated])
+    def me(self, request):
+        """Профиль текущего пользователя."""
+
+        user = request.user
+        if request.method == 'PATCH':
+            serializer = UserMeSerializer(user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+        serializer = UserMeSerializer(user)
+        return Response(serializer.data)
+
+
+class UserMeViewSet(mixins.RetrieveModelMixin,
+                    mixins.UpdateModelMixin,
+                    viewsets.GenericViewSet):
+    """Вьюсет для работы с профилем текущего пользователя."""
+
+    serializer_class = UserMeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
 
 
 @api_view(['POST'])
@@ -60,9 +113,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
     search_fields = ('name',)
     lookup_field = 'slug'
     pagination_class = PageNumberPagination
-    http_method_names = ['get', 'post', 'delete']  # Временное решение для прохождения моих тестов(так же напомните)
+    http_method_names = ['get', 'post', 'delete']
 
-    def retrieve(self, request, *args, **kwargs):  # это тоже
+    def retrieve(self, request, *args, **kwargs):
         raise MethodNotAllowed('GET')
 
 
@@ -76,9 +129,9 @@ class GenreViewSet(viewsets.ModelViewSet):
     search_fields = ('name',)
     lookup_field = 'slug'
     pagination_class = PageNumberPagination
-    http_method_names = ['get', 'post', 'delete']  # Временное решение для прохождения моих тестов(так же напомните)
+    http_method_names = ['get', 'post', 'delete']
 
-    def retrieve(self, request, *args, **kwargs):  # это тоже
+    def retrieve(self, request, *args, **kwargs):
         raise MethodNotAllowed('GET')
 
 
@@ -88,7 +141,9 @@ class TitleViewSet(viewsets.ModelViewSet):
     GET — доступно всем, остальное — только администратору.
     """
 
-    queryset = Title.objects.all()
+    queryset = Title.objects.all().annotate(
+        rating=Avg('reviews__score')
+    ).order_by('id')
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     filterset_class = TitleFilter

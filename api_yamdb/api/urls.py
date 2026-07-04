@@ -2,13 +2,15 @@ from django.urls import include, path, re_path
 from rest_framework.routers import DefaultRouter
 
 from api.views import (CategoryViewSet, CommentViewSet, GenreViewSet,
-                       ReviewViewSet, TitleViewSet, get_confirmation_code,
-                       get_token)
+                       ReviewViewSet, TitleViewSet, UserViewSet,
+                       UserMeViewSet,
+                       get_confirmation_code, get_token)
 
 router_v1 = DefaultRouter()
 router_v1.register(r'categories', CategoryViewSet, basename='categories')
 router_v1.register(r'genres', GenreViewSet, basename='genres')
 router_v1.register(r'titles', TitleViewSet, basename='titles')
+router_v1.register(r'users', UserViewSet, basename='users')
 
 urlpatterns = [
     re_path(r'^v1/', include(router_v1.urls)),
@@ -47,4 +49,8 @@ urlpatterns = [
             'delete': 'destroy'
         })
     ),
+    path('v1/users/me/', UserMeViewSet.as_view({
+        'get': 'retrieve',
+        'patch': 'partial_update',
+    }), name='user-me'),
 ]

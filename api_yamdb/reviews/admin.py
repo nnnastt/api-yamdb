@@ -1,7 +1,10 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from reviews.models import Category, CustomUser, Genre, Title, TitleGenre
+from reviews.models import (
+    Category, CustomUser, Comment,
+    Genre, Review, Title, TitleGenre
+)
 
 
 @admin.register(CustomUser)
@@ -51,3 +54,19 @@ class TitleGenreAdmin(admin.ModelAdmin):
 
     list_display = ('id', 'title', 'genre')
     list_filter = ('title', 'genre')
+
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    """Админка для модели Review."""
+    list_display = ('id', 'title', 'author', 'score', 'pub_date')
+    list_filter = ('score', 'pub_date')
+    search_fields = ('text', 'author__username', 'title__name')
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    """Админка для модели Comment."""
+    list_display = ('id', 'review', 'author', 'pub_date')
+    list_filter = ('pub_date',)
+    search_fields = ('text', 'author__username')
