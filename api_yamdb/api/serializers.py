@@ -1,8 +1,37 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.relations import SlugRelatedField
 
-from reviews.models import Category, Genre, Title, Review, Comment
+from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
+
+
+class RegistrationSerializer(serializers.Serializer):
+
+    email = serializers.EmailField(max_length=254, required=True)
+    username = serializers.CharField(max_length=150, required=True)
+
+    def validate_username(self, username: str) -> str:
+        if username.lower() == 'me':
+            raise ValidationError(
+                {'detail': 'Неверное имя пользователя.'},
+                status.HTTP_400_BAD_REQUEST
+            )
+        return username
+
+
+class TokenSerializer(serializers.Serializer):
+
+    confirmation_code = serializers.CharField(required=True)
+    username = serializers.CharField(max_length=150, required=True)
+
+    def validate_username(self, username: str) -> str:
+        if not CustomUser.objects.filter(username=username).exists():
+            raise ValidationError(
+                {'detail': 'Пользователь не найден.'},
+                status.HTTP_404_NOT_FOUND
+            )
+        return username
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -104,7 +133,7 @@ class ReviewSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     'Можно оставить только один отзыв'
                 )
-        return data 
+        return data
 
 
 class CommentSerializer(serializers.ModelSerializer):

@@ -1,6 +1,65 @@
-from django.conf import settings
-from django.db import models
+import random
+
+from django.contrib.auth.models import AbstractUser
+from django.core.cache import cache
+from django.core.mail import send_mail
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
+
+from reviews.constants import CODE_SYMBOLS_NUMBER, CODE_VALIDITY_PERIOD
+
+
+class UserRole(models.TextChoices):
+    """Роли пользователя."""
+    USER = 'user'
+    MODERATOR = 'moderator'
+    ADMIN = 'admin'
+
+
+class CustomUser(AbstractUser):
+    """Модель пользователя."""
+    role = models.CharField(
+        max_length=20,
+        choices=UserRole.choices,
+        default=UserRole.USER,
+        verbose_name='Роль'
+    )
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == UserRole.ADMIN or self.is_superuser
+
+    @property
+    def is_moderator(self) -> bool:
+        return self.role == UserRole.MODERATOR or self.is_admin
+
+    def generate_code(self) -> str:
+        confirmation_code = ''.join(
+            str(random.randint(0, 9)) for _ in range(CODE_SYMBOLS_NUMBER)
+        )
+        cache.set(
+            self.username,
+            confirmation_code,
+            timeout=CODE_VALIDITY_PERIOD
+        )
+        return confirmation_code
+
+    def code_is_valid(self, user_code: str) -> bool:
+        correct_code = cache.get(self.username)
+        if user_code == correct_code:
+            return True
+        else:
+            return False
+
+    def send_mail(self) -> None:
+        confirmation_code = self.generate_code()
+        send_mail(
+            subject='Код подтверждения',
+            message=f'Ваш код подтверждения: {confirmation_code}',
+            from_email='YaMDB@mail.ru',
+            recipient_list=[self.email],
+            fail_silently=True,
+        )
 
 
 class Category(models.Model):
@@ -118,6 +177,7 @@ class TitleGenre(models.Model):
     def __str__(self) -> str:
         return f'{self.title} — {self.genre}'
 
+
 class Review(models.Model):
     """Модель отзыва на произведение."""
     title = models.ForeignKey(
@@ -130,7 +190,7 @@ class Review(models.Model):
         verbose_name='Текст отзыва'
     )
     author = models.ForeignKey(
-        'users.User',
+        CustomUser,
         on_delete=models.CASCADE,
         related_name='reviews',
         verbose_name='Автор отзыва'
@@ -175,7 +235,7 @@ class Comment(models.Model):
         verbose_name='Текст комментария'
     )
     author = models.ForeignKey(
-        'users.User',
+        CustomUser,
         on_delete=models.CASCADE,
         related_name='comments',
         verbose_name='Автор комментария'

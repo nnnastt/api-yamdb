@@ -13,10 +13,7 @@ class IsAdminOrReadOnly(permissions.BasePermission):
             return True
         return (
             request.user.is_authenticated
-            and (
-                request.user.is_staff  #временное решение пока не будет пользователей(если забуду исправить напомните мне)
-                or request.user.is_superuser
-            )
+            and request.user.is_admin
         )
 
 
@@ -37,6 +34,5 @@ class IsAuthorModeratorAdminOrReadOnly(permissions.BasePermission):
         return (
             request.method in permissions.SAFE_METHODS
             or obj.author == request.user
-            or request.user.is_staff #временное решение пока не будет пользователей(если забуду исправить напомните мне)
-            or request.user.is_superuser
+            or request.user.is_moderator
         )
