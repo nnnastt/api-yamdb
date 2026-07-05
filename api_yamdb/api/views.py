@@ -10,7 +10,9 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.filters import TitleFilter
-from api.permissions import IsAdminOrReadOnly, IsAuthorModeratorAdminOrReadOnly, IsAdminUser
+from api.permissions import (
+    IsAdminOrReadOnly, IsAuthorModeratorAdminOrReadOnly, IsAdminUser
+)
 from api.serializers import (CategorySerializer, CommentSerializer,
                              GenreSerializer, RegistrationSerializer,
                              ReviewSerializer, TitleCreateSerializer,
@@ -31,7 +33,8 @@ class UserViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_queryset(self):
-        if not self.request.user.is_authenticated or not self.request.user.is_admin:
+        user = self.request.user
+        if not user.is_authenticated or not user.is_admin:
             return CustomUser.objects.none()
         return super().get_queryset()
 
@@ -39,15 +42,17 @@ class UserViewSet(viewsets.ModelViewSet):
             permission_classes=[permissions.IsAuthenticated])
     def me(self, request):
         """Профиль текущего пользователя."""
-
         user = request.user
+
         if request.method == 'PATCH':
-            serializer = UserMeSerializer(user, data=request.data, partial=True)
+            serializer = UserMeSerializer(
+                user, data=request.data, partial=True
+            )
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
-        serializer = UserMeSerializer(user)
-        return Response(serializer.data)
+
+        return Response(UserMeSerializer(user).data)
 
 
 class UserMeViewSet(mixins.RetrieveModelMixin,
@@ -64,7 +69,9 @@ class UserMeViewSet(mixins.RetrieveModelMixin,
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer = self.get_serializer(
+            instance, data=request.data, partial=partial
+        )
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)

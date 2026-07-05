@@ -11,6 +11,7 @@ from reviews.constants import CODE_SYMBOLS_NUMBER, CODE_VALIDITY_PERIOD
 
 class UserRole(models.TextChoices):
     """Роли пользователя."""
+
     USER = 'user'
     MODERATOR = 'moderator'
     ADMIN = 'admin'
@@ -18,6 +19,7 @@ class UserRole(models.TextChoices):
 
 class CustomUser(AbstractUser):
     """Модель пользователя."""
+
     role = models.CharField(
         max_length=20,
         choices=UserRole.choices,
@@ -185,6 +187,7 @@ class TitleGenre(models.Model):
 
 class Review(models.Model):
     """Модель отзыва на произведение."""
+
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
