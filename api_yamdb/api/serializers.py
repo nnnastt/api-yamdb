@@ -4,43 +4,62 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.relations import SlugRelatedField
 
+from reviews.constants import (
+    CURRENT_YEAR,
+    MAX_USERNAME_LENGTH,
+    MAX_EMAIL_LENGTH,
+    MAX_NAME_LENGTH,
+    MIN_YEAR,
+    MIN_SCORE,
+    MAX_SCORE,
+    RESERVED_USERNAME,
+    USERNAME_PATTERN,
+)
 from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
 
 
 class RegistrationSerializer(serializers.Serializer):
     """Сериализатор для регистрации."""
 
-    email = serializers.EmailField(max_length=254, required=True)
-    username = serializers.RegexField(regex=r'^[\w.@+-]+\Z',
-                                      max_length=150,
-                                      required=True)
+    email = serializers.EmailField(max_length=MAX_EMAIL_LENGTH, required=True)
+    username = serializers.RegexField(
+        regex=USERNAME_PATTERN,
+        max_length=MAX_USERNAME_LENGTH,
+        required=True
+    )
 
     def validate_username(self, username: str) -> str:
-        if username.lower() == 'me':
+        if username.lower() == RESERVED_USERNAME:
             raise ValidationError(
-                {'detail': 'Неверное имя пользователя.'},
+                {'detail': f'Имя пользователя "{RESERVED_USERNAME}" запрещено.'},
                 status.HTTP_400_BAD_REQUEST
             )
         return username
 
     def validate(self, data):
-        user = CustomUser.objects.filter(email=data['email']).first()
-        if user and user.username != data['username']:
+        username = data.get('username')
+        email = data.get('email')
+
+        user_by_username = CustomUser.objects.filter(username=username).first()
+        if user_by_username:
+            if user_by_username.email != email:
+                raise ValidationError(
+                    {'detail': 'Пользователь с таким username уже существует.'},
+                    status.HTTP_400_BAD_REQUEST
+                )
+            return data
+
+        if CustomUser.objects.filter(email=email).exists():
             raise ValidationError(
-                {'detail': 'Неверное имя пользователя.'},
+                {'detail': 'Пользователь с таким email уже существует.'},
                 status.HTTP_400_BAD_REQUEST
             )
-        user = CustomUser.objects.filter(username=data['username']).first()
-        if user and user.email != data['email']:
-            raise ValidationError(
-                {'detail': 'Неверная почта.'},
-                status.HTTP_400_BAD_REQUEST
-            )
+
         return data
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Сериализатор для админа."""
+    """Сериализатор для пользователя (используется и для админа, и для self)."""
 
     class Meta:
         model = CustomUser
@@ -48,38 +67,22 @@ class UserSerializer(serializers.ModelSerializer):
             'username', 'email', 'first_name', 'last_name',
             'bio', 'role'
         )
-        extra_kwargs = {
-            'email': {'required': True},
-            'username': {'required': True},
-        }
+        read_only_fields = ('role',)
 
     def validate_username(self, value):
-        if value.lower() == 'me':
-            raise serializers.ValidationError('Неверное имя пользователя.')
+        if value == RESERVED_USERNAME:
+            raise serializers.ValidationError(
+                f'Имя пользователя "{RESERVED_USERNAME}" запрещено.'
+            )
         return value
 
     def validate_email(self, value):
         if CustomUser.objects.filter(email=value).exists():
+            if self.instance and self.instance.email == value:
+                return value
             raise serializers.ValidationError(
                 'Пользователь с таким email уже существует.'
             )
-        return value
-
-
-class UserMeSerializer(serializers.ModelSerializer):
-    """Сериализатор для пользователя."""
-
-    class Meta:
-        model = CustomUser
-        fields = (
-            'username', 'email', 'first_name', 'last_name',
-            'bio', 'role'
-        )
-        read_only_fields = ['role']
-
-    def validate_username(self, value):
-        if value.lower() == 'me':
-            raise serializers.ValidationError('Неверное имя пользователя.')
         return value
 
 
@@ -87,7 +90,7 @@ class TokenSerializer(serializers.Serializer):
     """Сериализатор для получения токена."""
 
     confirmation_code = serializers.CharField(required=True)
-    username = serializers.CharField(max_length=150, required=True)
+    username = serializers.CharField(max_length=MAX_USERNAME_LENGTH, required=True)
 
     def validate_username(self, username: str) -> str:
         get_object_or_404(CustomUser, username=username)
@@ -100,7 +103,6 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ('name', 'slug')
-        lookup_field = 'slug'
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -109,18 +111,18 @@ class GenreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
         fields = ('name', 'slug')
-        lookup_field = 'slug'
 
 
 class TitleReadSerializer(serializers.ModelSerializer):
     """
     Сериализатор для чтения произведения (GET).
+
     Включает рейтинг (аннотация из отзывов).
     """
 
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(read_only=True, many=True)
-    rating = serializers.FloatField(read_only=True)
+    rating = serializers.IntegerField(read_only=True, default=None)
 
     class Meta:
         model = Title
@@ -147,24 +149,20 @@ class TitleCreateSerializer(serializers.ModelSerializer):
     )
     year = serializers.IntegerField(
         validators=[
-            MinValueValidator(0),
-            MaxValueValidator(2026),
+            MinValueValidator(
+                MIN_YEAR,
+                message='Год не может быть меньше -5000'
+            ),
+            MaxValueValidator(
+                CURRENT_YEAR,
+                message='Год не может быть больше текущего'
+            )
         ]
     )
-
-    name = serializers.CharField(max_length=256)
 
     class Meta:
         model = Title
         fields = ('id', 'name', 'year', 'description', 'genre', 'category')
-
-    def validate_name(self, value):
-        """Дополнительная валидация длины названия."""
-        if len(value) > 256:
-            raise serializers.ValidationError(
-                'Название произведения не может быть длиннее 256 символов.'
-            )
-        return value
 
     def to_representation(self, instance):
         """При GET-запросе используем TitleReadSerializer для полной инфы."""

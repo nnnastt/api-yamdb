@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.admin import display
 
 from reviews.models import (
     Category, CustomUser, Comment,
@@ -8,9 +9,9 @@ from reviews.models import (
 
 
 @admin.register(CustomUser)
-class CustomUserAdmin(UserAdmin):
+class UserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ('Extra Fields', {'fields': ('role',)}),
+        ('Extra Fields', {'fields': ('role', 'bio')}),
     )
 
 
@@ -34,10 +35,9 @@ class TitleAdmin(admin.ModelAdmin):
     list_filter = ('category', 'year')
     search_fields = ('name', 'description')
 
+    @display(description='Жанры')
     def get_genres(self, obj):
         return ", ".join([genre.name for genre in obj.genre.all()])
-
-    get_genres.short_description = 'Жанры'
 
 
 @admin.register(TitleGenre)

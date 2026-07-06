@@ -4,22 +4,22 @@ from rest_framework import permissions
 class IsAdminOrReadOnly(permissions.BasePermission):
     """
     Разрешение:
+
     - GET — доступно всем (включая анонимов)
     - POST, PATCH, DELETE — только администратору
     """
 
     def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
         return (
-            request.user.is_authenticated
-            and request.user.is_admin
+            request.method in permissions.SAFE_METHODS
+            or (request.user.is_authenticated and request.user.is_admin)
         )
 
 
 class IsAuthorModeratorAdminOrReadOnly(permissions.BasePermission):
     """
     Разрешение:
+
     - GET — доступно всем (включая анонимов)
     - POST, PATCH, DELETE — только автору, модератору или администратору
     """

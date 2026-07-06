@@ -1,2 +1,26 @@
+from pathlib import Path
+import datetime
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR_PATH_FOR_CSV = BASE_DIR / 'static' / 'data'
+
+MAX_USERNAME_LENGTH = 150
+MAX_EMAIL_LENGTH = 254
+MAX_ROLE_LENGTH = 20
+RESERVED_USERNAME = 'me'
+USERNAME_PATTERN = r'^[\w.@+-]+\Z'
+
+MAX_NAME_LENGTH = 256
+MAX_TEXT_LENGTH = 2000
+
+MIN_SCORE = 1
+MAX_SCORE = 10
+
+MIN_YEAR = -5000
+CURRENT_YEAR = datetime.datetime.now().year
+
 CODE_SYMBOLS_NUMBER = 6
 CODE_VALIDITY_PERIOD = 600
+
+EMAIL_LENGTH = 256
+MODELS_MAX_LENGTH = 256

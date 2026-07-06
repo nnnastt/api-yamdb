@@ -1,5 +1,4 @@
 import csv
-from pathlib import Path
 
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
@@ -8,6 +7,7 @@ from reviews.models import (
     Category, Comment, Genre,
     Review, Title, TitleGenre
 )
+from reviews.constants import DATA_DIR_PATH_FOR_CSV
 
 User = get_user_model()
 
@@ -16,8 +16,7 @@ class Command(BaseCommand):
     help = 'Импорт данных из CSV'
 
     def handle(self, *args, **options):
-        base_dir = Path(__file__).resolve().parent.parent.parent.parent
-        data_dir = base_dir / 'static' / 'data'
+        data_dir = DATA_DIR_PATH_FOR_CSV
 
         with open(data_dir / 'category.csv', 'r', encoding='utf-8') as f:
             for row in csv.DictReader(f):
