@@ -1,5 +1,6 @@
 from datetime import timedelta
 from pathlib import Path
+import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -126,3 +127,33 @@ AUTH_USER_MODEL = 'reviews.CustomUser'
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
 }
+
+
+
+if 'test' in sys.argv or 'pytest' in sys.argv[0]:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
+    }
+
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'test-cache',
+        }
+    }
+
+    PASSWORD_HASHERS = [
+        'django.contrib.auth.hashers.MD5PasswordHasher',
+    ]
+
+    EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+
+    REST_FRAMEWORK['PAGE_SIZE'] = 5
+
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': True,
+    }

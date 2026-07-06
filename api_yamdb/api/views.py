@@ -32,12 +32,6 @@ class UserViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     http_method_names = ['get', 'post', 'patch', 'delete']
 
-    def get_queryset(self):
-        user = self.request.user
-        if not user.is_authenticated or not user.is_admin:
-            return CustomUser.objects.none()
-        return super().get_queryset()
-
     @action(detail=False, methods=['get', 'patch'],
             permission_classes=[permissions.IsAuthenticated])
     def me(self, request):
