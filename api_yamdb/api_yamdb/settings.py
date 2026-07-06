@@ -131,7 +131,6 @@ SIMPLE_JWT = {
 }
 
 
-
 if 'test' in sys.argv or 'pytest' in sys.argv[0]:
     DATABASES = {
         'default': {
