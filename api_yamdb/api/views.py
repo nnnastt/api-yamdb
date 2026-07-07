@@ -155,13 +155,19 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    """Вьюсет для модели Review."""
+    """Вьюсет для отзывов."""
 
     serializer_class = ReviewSerializer
-    permission_classes = [IsAuthorModeratorAdminOrReadOnly]
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+        IsAuthorModeratorAdminOrReadOnly,
+    )
 
     def get_title(self):
-        return get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        return get_object_or_404(
+            Title,
+            pk=self.kwargs['title_id']
+        )
 
     def get_queryset(self):
         return self.get_title().reviews.all()
@@ -174,16 +180,19 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 
 class CommentViewSet(viewsets.ModelViewSet):
-    """Вьюсет для модели Comment."""
+    """Вьюсет для комментариев."""
 
     serializer_class = CommentSerializer
-    permission_classes = (IsAuthorModeratorAdminOrReadOnly,)
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+        IsAuthorModeratorAdminOrReadOnly,
+    )
 
     def get_review(self):
         return get_object_or_404(
             Review,
-            pk=self.kwargs.get('review_id'),
-            title_id=self.kwargs.get('title_id')
+            pk=self.kwargs['review_id'],
+            title_id=self.kwargs['title_id']
         )
 
     def get_queryset(self):
