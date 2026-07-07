@@ -1,30 +1,28 @@
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, mixins, status, viewsets, permissions
-from rest_framework.decorators import api_view, action, permission_classes
+from rest_framework import filters, mixins, permissions, status, viewsets
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.filters import TitleFilter
-from api.permissions import (
-    IsAdminOrReadOnly, IsAuthorModeratorAdminOrReadOnly, IsAdminUser
-)
+from api.permissions import (IsAdminOrReadOnly, IsAdminUser,
+                             IsAuthorModeratorAdminOrReadOnly)
 from api.serializers import (CategorySerializer, CommentSerializer,
                              GenreSerializer, RegistrationSerializer,
                              ReviewSerializer, TitleCreateSerializer,
                              TitleReadSerializer, TokenSerializer,
                              UserSerializer)
-
-from reviews.models import Category, CustomUser, Genre, Review, Title
+from reviews.models import Category, Genre, Review, Title, User
 
 
 class UserViewSet(viewsets.ModelViewSet):
     """Вьюсет для управления пользователями."""
 
-    queryset = CustomUser.objects.all().order_by('username')
+    queryset = User.objects.all().order_by('username')
     serializer_class = UserSerializer
     permission_classes = [IsAdminUser]
     filter_backends = [filters.SearchFilter]
@@ -44,17 +42,16 @@ class UserViewSet(viewsets.ModelViewSet):
         """Профиль текущего пользователя."""
 
         user = request.user
-        serializer = UserSerializer(
-            user,
-            data=request.data,
-            partial=True,
-            context={'request': request}
-        )
+        serializer = UserSerializer(user)
 
         if request.method == 'PATCH':
+            serializer = UserSerializer(
+                user,
+                data=request.data,
+                partial=True,
+            )
             serializer.is_valid(raise_exception=True)
             serializer.save(role=user.role)
-            return Response(serializer.data)
 
         return Response(serializer.data)
 
@@ -67,19 +64,11 @@ def get_token(request) -> Response:
     serializer.is_valid(raise_exception=True)
 
     username = serializer.validated_data['username']
-    user_code = serializer.validated_data['confirmation_code']
-    user = CustomUser.objects.get(username=username)
-
-    if user.code_is_valid(user_code):
-        token = RefreshToken.for_user(user)
-        return Response(
-            {'token': str(token.access_token)},
-            status=status.HTTP_200_OK
-        )
-
+    user = User.objects.get(username=username)
+    token = RefreshToken.for_user(user)
     return Response(
-        {'error': 'Код не найден или истёк.'},
-        status=status.HTTP_400_BAD_REQUEST
+        {'token': str(token.access_token)},
+        status=status.HTTP_200_OK
     )
 
 
@@ -92,7 +81,7 @@ def get_confirmation_code(request) -> Response:
 
     email = serializer.validated_data['email']
     username = serializer.validated_data['username']
-    user, _ = CustomUser.objects.get_or_create(
+    user, _ = User.objects.get_or_create(
         username=username,
         email=email
     )

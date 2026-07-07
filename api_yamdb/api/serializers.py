@@ -4,18 +4,10 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.relations import SlugRelatedField
 
-from reviews.constants import (
-    CURRENT_YEAR,
-    MAX_USERNAME_LENGTH,
-    MAX_EMAIL_LENGTH,
-    MAX_NAME_LENGTH,
-    MIN_YEAR,
-    MIN_SCORE,
-    MAX_SCORE,
-    RESERVED_USERNAME,
-    USERNAME_PATTERN,
-)
-from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
+from reviews.constants import (CURRENT_YEAR, MAX_EMAIL_LENGTH,
+                               MAX_USERNAME_LENGTH, MIN_YEAR,
+                               RESERVED_USERNAME, USERNAME_PATTERN)
+from reviews.models import Category, Comment, Genre, Review, Title, User
 
 
 class RegistrationSerializer(serializers.Serializer):
@@ -31,7 +23,8 @@ class RegistrationSerializer(serializers.Serializer):
     def validate_username(self, username: str) -> str:
         if username.lower() == RESERVED_USERNAME:
             raise ValidationError(
-                {'detail': f'Имя пользователя "{RESERVED_USERNAME}" запрещено.'},
+                {'detail': f'Имя пользователя'
+                 f'"{RESERVED_USERNAME}" запрещено.'},
                 status.HTTP_400_BAD_REQUEST
             )
         return username
@@ -40,16 +33,17 @@ class RegistrationSerializer(serializers.Serializer):
         username = data.get('username')
         email = data.get('email')
 
-        user_by_username = CustomUser.objects.filter(username=username).first()
+        user_by_username = User.objects.filter(username=username).first()
         if user_by_username:
             if user_by_username.email != email:
                 raise ValidationError(
-                    {'detail': 'Пользователь с таким username уже существует.'},
+                    {'detail': 'Пользователь'
+                     'с таким username уже существует.'},
                     status.HTTP_400_BAD_REQUEST
                 )
             return data
 
-        if CustomUser.objects.filter(email=email).exists():
+        if User.objects.filter(email=email).exists():
             raise ValidationError(
                 {'detail': 'Пользователь с таким email уже существует.'},
                 status.HTTP_400_BAD_REQUEST
@@ -59,15 +53,15 @@ class RegistrationSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Сериализатор для пользователя (используется и для админа, и для self)."""
+    """Сериализатор для пользователя (и для админа, и для self)."""
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = (
             'username', 'email', 'first_name', 'last_name',
             'bio', 'role'
         )
-        read_only_fields = ('role',)
+        extra_kwargs = {'email': {'required': True}}
 
     def validate_username(self, value):
         if value == RESERVED_USERNAME:
@@ -77,7 +71,7 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
     def validate_email(self, value):
-        if CustomUser.objects.filter(email=value).exists():
+        if User.objects.filter(email=value).exists():
             if self.instance and self.instance.email == value:
                 return value
             raise serializers.ValidationError(
@@ -90,11 +84,18 @@ class TokenSerializer(serializers.Serializer):
     """Сериализатор для получения токена."""
 
     confirmation_code = serializers.CharField(required=True)
-    username = serializers.CharField(max_length=MAX_USERNAME_LENGTH, required=True)
+    username = serializers.CharField(
+        max_length=MAX_USERNAME_LENGTH,
+        required=True
+    )
 
-    def validate_username(self, username: str) -> str:
-        get_object_or_404(CustomUser, username=username)
-        return username
+    def validate(self, data) -> str:
+        user = get_object_or_404(User, username=data['username'])
+        if not user.code_is_valid(data['confirmation_code']):
+            raise ValidationError(
+                'Код не найден или истёк.',
+            )
+        return data
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -193,7 +194,7 @@ class ReviewSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Можно оставить только один отзыв.'
             )
-        
+
         return data
 
 

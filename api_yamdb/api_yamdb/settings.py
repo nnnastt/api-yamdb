@@ -1,6 +1,6 @@
+import sys
 from datetime import timedelta
 from pathlib import Path
-import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -124,7 +124,7 @@ CACHES = {
     }
 }
 
-AUTH_USER_MODEL = 'reviews.CustomUser'
+AUTH_USER_MODEL = 'reviews.User'
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=7),

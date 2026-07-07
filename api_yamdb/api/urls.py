@@ -1,16 +1,9 @@
 from django.urls import include, path, re_path
 from rest_framework.routers import DefaultRouter
 
-from api.views import (
-    CategoryViewSet,
-    GenreViewSet,
-    TitleViewSet,
-    UserViewSet,
-    ReviewViewSet,
-    CommentViewSet,
-    get_confirmation_code,
-    get_token,
-)
+from api.views import (CategoryViewSet, CommentViewSet, GenreViewSet,
+                       ReviewViewSet, TitleViewSet, UserViewSet,
+                       get_confirmation_code, get_token)
 
 API_VERSION = 'v1'
 
@@ -46,7 +39,8 @@ urlpatterns = [
     ),
 
     path(
-        f'{API_VERSION}/titles/<int:title_id>/reviews/<int:review_id>/comments/',
+        f'{API_VERSION}/titles/<int:title_id>/reviews/'
+        f'<int:review_id>/comments/',
         CommentViewSet.as_view({
             'get': 'list',
             'post': 'create',
@@ -55,7 +49,8 @@ urlpatterns = [
     ),
 
     path(
-        f'{API_VERSION}/titles/<int:title_id>/reviews/<int:review_id>/comments/<int:pk>/',
+        f'{API_VERSION}/titles/<int:title_id>/reviews/'
+        f'<int:review_id>/comments/<int:pk>/',
         CommentViewSet.as_view({
             'get': 'retrieve',
             'patch': 'partial_update',

@@ -1,14 +1,12 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
 from django.contrib.admin import display
+from django.contrib.auth.admin import UserAdmin
 
-from reviews.models import (
-    Category, CustomUser, Comment,
-    Genre, Review, Title, TitleGenre
-)
+from reviews.models import (Category, Comment, Genre, Review, Title,
+                            TitleGenre, User)
 
 
-@admin.register(CustomUser)
+@admin.register(User)
 class UserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
         ('Extra Fields', {'fields': ('role', 'bio')}),

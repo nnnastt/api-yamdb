@@ -30,7 +30,7 @@ class PublishedModel(models.Model):
         verbose_name='Текст отзыва'
     )
     author = models.ForeignKey(
-        'reviews.CustomUser',
+        'reviews.User',
         on_delete=models.CASCADE,
         related_name='%(class)ss',
         verbose_name='Автор отзыва'

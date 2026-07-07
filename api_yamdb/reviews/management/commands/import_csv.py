@@ -1,13 +1,10 @@
 import csv
 
-from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand
 
-from reviews.models import (
-    Category, Comment, Genre,
-    Review, Title, TitleGenre
-)
 from reviews.constants import DATA_DIR_PATH_FOR_CSV
+from reviews.models import Category, Comment, Genre, Review, Title, TitleGenre
 
 User = get_user_model()
 

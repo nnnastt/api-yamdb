@@ -1,5 +1,5 @@
-from pathlib import Path
 import datetime
+from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR_PATH_FOR_CSV = BASE_DIR / 'static' / 'data'

@@ -1,19 +1,18 @@
-import random
 import datetime
+import random
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.conf import settings
 
-from reviews.constants import (
-    CODE_SYMBOLS_NUMBER, CODE_VALIDITY_PERIOD,
-    MIN_SCORE, MAX_SCORE, MODELS_MAX_LENGTH,
-    MAX_ROLE_LENGTH
-)
+from reviews.constants import (CODE_SYMBOLS_NUMBER, CODE_VALIDITY_PERIOD,
+                               MAX_ROLE_LENGTH, MAX_SCORE, MIN_SCORE,
+                               MODELS_MAX_LENGTH)
 from reviews.core.models import NameSlugModel, PublishedModel
+
 
 class UserRole(models.TextChoices):
     """Роли пользователя."""
@@ -22,8 +21,8 @@ class UserRole(models.TextChoices):
     MODERATOR = 'moderator'
     ADMIN = 'admin'
 
-"""Если поменять имя модели и изменить в остальынх файлах, тесты падают"""
-class CustomUser(AbstractUser):
+
+class User(AbstractUser):
     """Модель пользователя."""
 
     role = models.CharField(
@@ -173,8 +172,14 @@ class Review(PublishedModel):
 
     score = models.PositiveSmallIntegerField(
         validators=[
-            MinValueValidator(MIN_SCORE, message='Оценка должна быть не меньше 1'),
-            MaxValueValidator(MAX_SCORE, message='Оценка должна быть не больше 10')
+            MinValueValidator(
+                MIN_SCORE,
+                message='Оценка должна быть не меньше 1'
+            ),
+            MaxValueValidator(
+                MAX_SCORE,
+                message='Оценка должна быть не больше 10'
+            )
         ],
         verbose_name='Оценка произведения'
     )
