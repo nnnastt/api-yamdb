@@ -6,7 +6,7 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.relations import SlugRelatedField
 
-from reviews.constants import (CURRENT_YEAR, MAX_EMAIL_LENGTH,
+from reviews.constants import (MAX_EMAIL_LENGTH,
                                MAX_USERNAME_LENGTH, MIN_YEAR,
                                RESERVED_USERNAME, USERNAME_PATTERN)
 from reviews.models import Category, Comment, Genre, Review, Title, User
@@ -25,7 +25,11 @@ class RegistrationSerializer(serializers.Serializer):
     def validate_username(self, username: str) -> str:
         if username == RESERVED_USERNAME:
             raise ValidationError(
-                {'detail': f'Имя пользователя "{RESERVED_USERNAME}" запрещено.'},
+                {
+                    'detail': (
+                        f'Имя пользователя "{RESERVED_USERNAME}" запрещено.'
+                    )
+                },
                 status.HTTP_400_BAD_REQUEST
             )
         return username
