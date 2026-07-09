@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers, status
@@ -21,10 +23,9 @@ class RegistrationSerializer(serializers.Serializer):
     )
 
     def validate_username(self, username: str) -> str:
-        if username.lower() == RESERVED_USERNAME:
+        if username == RESERVED_USERNAME:
             raise ValidationError(
-                {'detail': f'Имя пользователя'
-                 f'"{RESERVED_USERNAME}" запрещено.'},
+                {'detail': f'Имя пользователя "{RESERVED_USERNAME}" запрещено.'},
                 status.HTTP_400_BAD_REQUEST
             )
         return username
@@ -136,6 +137,7 @@ class TitleReadSerializer(serializers.ModelSerializer):
 class TitleCreateSerializer(serializers.ModelSerializer):
     """
     Сериализатор для создания/обновления произведения (POST/PATCH).
+
     Принимает slug категории и список slug жанров.
     """
 
@@ -155,7 +157,7 @@ class TitleCreateSerializer(serializers.ModelSerializer):
                 message='Год не может быть меньше -5000'
             ),
             MaxValueValidator(
-                CURRENT_YEAR,
+                datetime.now().year,
                 message='Год не может быть больше текущего'
             )
         ]

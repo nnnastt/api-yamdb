@@ -10,31 +10,57 @@ from django.db import models
 
 from reviews.constants import (CODE_SYMBOLS_NUMBER, CODE_VALIDITY_PERIOD,
                                MAX_ROLE_LENGTH, MAX_SCORE, MIN_SCORE,
-                               MODELS_MAX_LENGTH)
+                               MODELS_MAX_LENGTH, RESERVED_USERNAME)
 from reviews.core.models import NameSlugModel, PublishedModel
+
+
+def validate_not_me(value):
+    """Валидатор, запрещающий использование username 'me'."""
+    if value == RESERVED_USERNAME:
+        raise models.ValidationError(
+            f'Имя пользователя "{RESERVED_USERNAME}" запрещено.'
+        )
+
+
+def get_current_year():
+    """Возвращает текущий год."""
+    return datetime.datetime.now().year
 
 
 class UserRole(models.TextChoices):
     """Роли пользователя."""
 
-    USER = 'user'
-    MODERATOR = 'moderator'
-    ADMIN = 'admin'
+    USER = 'user', 'Пользователь'
+    MODERATOR = 'moderator', 'Модератор'
+    ADMIN = 'admin', 'Администратор'
 
 
 class User(AbstractUser):
     """Модель пользователя."""
 
+    email = models.EmailField(
+        unique=True,
+        verbose_name='Электронная почта',
+    )
     role = models.CharField(
         max_length=MAX_ROLE_LENGTH,
         choices=UserRole.choices,
         default=UserRole.USER,
-        verbose_name='Роль'
+        verbose_name='Роль',
     )
     bio = models.TextField(
         blank=True,
         null=True,
+        verbose_name='Биография',
     )
+
+    class Meta:
+        ordering = ('username',)
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+
+    def __str__(self) -> str:
+        return self.username
 
     @property
     def is_admin(self) -> bool:
@@ -95,10 +121,10 @@ class Title(models.Model):
         max_length=MODELS_MAX_LENGTH,
         verbose_name='Название произведения'
     )
-    year = models.PositiveSmallIntegerField(
+    year = models.SmallIntegerField(
         validators=[
             MaxValueValidator(
-                datetime.datetime.now().year,
+                get_current_year,
                 message='Год не может быть больше текущего'
             )
         ],
@@ -174,11 +200,11 @@ class Review(PublishedModel):
         validators=[
             MinValueValidator(
                 MIN_SCORE,
-                message='Оценка должна быть не меньше 1'
+                message=f'Оценка должна быть не меньше {MIN_SCORE}'
             ),
             MaxValueValidator(
                 MAX_SCORE,
-                message='Оценка должна быть не больше 10'
+                message=f'Оценка должна быть не больше {MAX_SCORE}'
             )
         ],
         verbose_name='Оценка произведения'
