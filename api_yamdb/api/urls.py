@@ -63,7 +63,8 @@ urlpatterns = [
     ),
 
     re_path(
-        rf'^{API_VERSION}/titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)/comments/',
+        rf'^{API_VERSION}/titles/(?P<title_id>\d+)/reviews/'
+        r'(?P<review_id>\d+)/comments/',
         include(comments_urlpatterns)
     ),
 ]
