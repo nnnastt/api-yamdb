@@ -10,11 +10,8 @@ from reviews.constants import (MAX_EMAIL_LENGTH,
                                MAX_USERNAME_LENGTH, MIN_YEAR,
                                RESERVED_USERNAME, USERNAME_PATTERN)
 from reviews.models import Category, Comment, Genre, Review, Title, User
+from reviews.services import get_current_year
 
-
-def get_current_year():
-    """Возвращает текущий год."""
-    return datetime.now().year
 
 class RegistrationSerializer(serializers.Serializer):
     """Сериализатор для регистрации."""
