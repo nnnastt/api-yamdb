@@ -5,26 +5,18 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.cache import cache
 from django.core.mail import send_mail
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import (
+    MaxValueValidator, MinValueValidator,RegexValidator)
 from django.db import models
 
 from reviews.constants import (CODE_SYMBOLS_NUMBER, CODE_VALIDITY_PERIOD,
-                               MAX_ROLE_LENGTH, MAX_SCORE, MIN_SCORE,
-                               MODELS_MAX_LENGTH, RESERVED_USERNAME)
+                               MAX_ROLE_LENGTH, MAX_USERNAME_LENGTH,
+                               MAX_SCORE, MIN_SCORE,
+                               MODELS_MAX_LENGTH, RESERVED_USERNAME,
+                               USERNAME_PATTERN)
 from reviews.core.models import NameSlugModel, PublishedModel
-
-
-def validate_not_me(value):
-    """Валидатор, запрещающий использование username 'me'."""
-    if value == RESERVED_USERNAME:
-        raise models.ValidationError(
-            f'Имя пользователя "{RESERVED_USERNAME}" запрещено.'
-        )
-
-
-def get_current_year():
-    """Возвращает текущий год."""
-    return datetime.datetime.now().year
+from reviews.services import get_current_year
+from reviews.validators import validate_not_me
 
 
 class UserRole(models.TextChoices):
@@ -38,6 +30,18 @@ class UserRole(models.TextChoices):
 class User(AbstractUser):
     """Модель пользователя."""
 
+    username = models.CharField(
+        max_length=MAX_USERNAME_LENGTH,
+        unique=True,
+        validators=[
+            validate_not_me,
+            RegexValidator(
+                regex=USERNAME_PATTERN,
+                message='Недопустимые символы в имени пользователя.'
+            )
+        ],
+        verbose_name='Имя пользователя',
+    )
     email = models.EmailField(
         unique=True,
         verbose_name='Электронная почта',

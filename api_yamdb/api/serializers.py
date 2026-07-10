@@ -12,6 +12,10 @@ from reviews.constants import (MAX_EMAIL_LENGTH,
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
 
+def get_current_year():
+    """Возвращает текущий год."""
+    return datetime.now().year
+
 class RegistrationSerializer(serializers.Serializer):
     """Сериализатор для регистрации."""
 
@@ -158,10 +162,10 @@ class TitleCreateSerializer(serializers.ModelSerializer):
         validators=[
             MinValueValidator(
                 MIN_YEAR,
-                message='Год не может быть меньше -5000'
+                message=f'Год не может быть меньше {MIN_YEAR}'
             ),
             MaxValueValidator(
-                datetime.now().year,
+                get_current_year,
                 message='Год не может быть больше текущего'
             )
         ]
